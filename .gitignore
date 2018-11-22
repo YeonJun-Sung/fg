@@ -11,6 +11,10 @@ local.properties
 .settings/
 .loadpath
 .recommenders
+target/
+bulid/
+src/test
+
 
 # External tool builders
 .externalToolBuilders/
