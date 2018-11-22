@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="manage">
+	<select id="getPlayerInfoDetail" parameterType="String" resultType="hashmap">
+		SELECT *
+		FROM player
+		WHERE player_key = #{player_key}
+	</select>
+	
+	<update id="saveSelectPosition" parameterType="java.util.List">
+		<foreach collection="list" item="up" separator=";">
+			UPDATE player
+			SET
+				select_position = #{up.position}
+			WHERE
+				player_key = #{up.player_key}
+        </foreach>
+	</update>
+	
+	<update id="resetSelectPosition">
+			UPDATE player
+			SET
+				select_position = null
+			WHERE
+				user_key = #{user_key}
+	</update>
+	
+</mapper>

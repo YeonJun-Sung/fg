@@ -1,0 +1,162 @@
+@charset "EUC-KR";
+
+html {
+	width: 99.5%;
+	height: 95%;
+}
+
+body {
+	width: 100%;
+	height: 100%;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+.black {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	background: #000000 repeat;
+	opacity: 0.5;
+	left: 0;
+	top: 0;
+	z-index: 1000;
+	display: none;
+}
+
+.dialog {
+	position: fixed;
+	left: 50%;
+	top: 50%;
+	width: 400px;
+	height: 100px;
+	margin-left: -200px;
+	margin-top: -50px;
+	border: 3px solid;
+	background: #FFFFFF;
+	z-index: 2000;
+	display: none;
+}
+
+#player_list_table {
+	width: 100%;
+	text-align: center;
+	border-collapse: collapse;
+	margin-top: 20px;
+}
+
+#player_list td {
+	border: 1px;
+	border-style: solid;
+	padding: 3px 2px;
+}
+
+#player_list_head th {
+	border: 1px;
+	border-style: solid;
+}
+
+.center_p {
+	width: 100%;
+	text-align: center;
+}
+
+.edit_name {
+	width: 80%;
+	text-align: center;
+	margin-top: 2px;
+}
+
+.edit_bn {
+	width: 50%;
+	text-align: center;
+	border-style: none;
+	margin-top: 2px;
+}
+
+.login_page_button {
+	height: 60px;
+	padding: 0px;
+	width: inherit;
+	font-size: xx-large;
+}
+
+.login_page_button_input {
+	height: 51px;
+	padding: 0px;
+	width: 20%;
+	font-size: unset;
+	margin-top: -20px;
+	margin-right: -20px;
+}
+
+.result_div {
+	height: 60px;
+	padding: 0px;
+	width: inherit;
+	margin-top: 10px;
+	font-size: xx-large;
+	text-align: center;
+}
+
+.login_page_input {
+	height: 50px;
+	width: inherit;
+	font-size: x-large;
+}
+
+.login_page_input_button {
+	height: 50px;
+	width: 77%;
+	font-size: x-large;
+}
+
+.none_bg_button {
+	background: white;
+	border: none;
+	font-size: medium;
+}
+
+.div_center {
+	width: 400px;
+	height: 300px;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin: -150px -200px 0px -200px;
+}
+
+.div_center_table {
+	width: 90%;
+	margin: auto;
+	margin-top: 50px;
+}
+
+.div_text {
+	width: inherit;
+	height: 50px;
+	margin-bottom: 15px;
+}
+
+.div_button {
+	width: inherit;
+	height: 50px;
+	margin-bottom: 10px;
+}
+
+.div_bottom {
+	width: inherit;
+	height: 20px;
+	margin-bottom: 10px;
+}
+
+.div_left {
+	float: left;
+}
+
+.div_right {
+	float: right;
+	margin-top: 2px;
+}

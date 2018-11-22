@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="login">
+	<!-- 유저키 가져오기  -->
+	<select id="getUserKey" parameterType="hashmap" resultType="String">
+		SELECT user_key
+		FROM userinfo
+		WHERE id = #{id}
+			and pw = #{pw}
+	</select>
+	
+	<!-- 로그인시 유저 확인하기  -->
+	<select id="getUserInfo" parameterType="hashmap" resultType="fg.vo.UserVO">
+		SELECT id
+			, a.user_key userKey
+			, b.team_key teamKey
+			, email
+			, b.name teamName
+			, a.name userName
+			, b.rating
+		FROM userinfo a
+			LEFT OUTER JOIN team b
+			on a.team_key = b.team_key 
+		WHERE id = #{id}
+			and pw = #{pw}
+	</select>
+	
+	<!-- 등록된 유저의 정보 찾기  -->
+	<select id="findUserInfo" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			<if test="id == null or id == ''">
+			id
+			</if>
+			<if test="id != null and id != ''">
+			pw
+			</if>
+		FROM userinfo
+		WHERE
+			email = #{email}
+			<if test="id != null and id != ''">
+			and id = #{id}
+			</if>
+	</select>
+	
+	<!-- 회원가입 페이지에서 중복아이디 확인  -->
+	<select id="checkId" parameterType="String" resultType="hashMap">
+		SELECT user_key
+		FROM userinfo
+		WHERE
+			id = #{id}
+	</select>
+	<!-- 회원가입 페이지에서 중복닉네임 확인  -->
+	<select id="checkName" parameterType="String" resultType="hashMap">
+		SELECT user_key
+		FROM userinfo
+		WHERE
+			name = #{name}
+	</select>
+	<!-- 회원가입 정보 데이터 등록  -->
+	<insert id="signupAction" parameterType="hashMap">
+		INSERT INTO userinfo (id, pw, name, user_key, email)
+		VALUES (#{id}, #{pw}, #{name}, uuid(), #{email})
+    </insert>
+    
+    <!-- 회원가입 페이지에서 이메일 인증 확인  -->
+	<select id="checkEmail" parameterType="String" resultType="int">
+		SELECT count(*)
+		FROM userinfo
+		WHERE
+			email = #{send_email}
+	</select>
+</mapper>

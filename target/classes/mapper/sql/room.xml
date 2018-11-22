@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="room">
+	<!-- 호스트 유저를 등록해서 호스트 기준으로만 방을 생성하도록 유도  -->
+	<insert id="insertInfo" parameterType="hashmap">
+		INSERT INTO game_room
+		(room_key, user_key, rating, host_user, user_index)
+		VALUES (uuid(), #{user_key}, ${rating}, 1, 0)
+		<!-- 룸키를 반환  -->
+		<selectKey keyProperty="room_key" resultType="String" order="AFTER">
+		SELECT room_key
+		FROM game_room
+		WHERE user_key = #{user_key}
+			and user_key is not null
+		ORDER BY seq DESC
+		limit 1;
+		</selectKey>
+    </insert>
+    
+    <!--해당 위치에 플레이어의 정보 등록 -->
+	<insert id="initRoom" parameterType="String">
+		INSERT INTO game_room
+		(room_key, rating, user_index)
+		VALUES (#{room_key}, ${rating}, ${user_index})
+    </insert>
+    
+    <select id="getHostUserKey" parameterType="String" resultType="String">
+		SELECT user_key
+		FROM game_room
+		WHERE room_key = #{room_key}
+			and host_user = 1
+	</select>
+	
+	<!-- 빈방 찾기 -->
+    <select id="findGameRoom" parameterType="hashmap" resultType="String">
+		SELECT room_key
+		FROM game_room
+		WHERE user_key is null
+			and rating = ${rating}
+		limit 1;
+	</select>
+	
+	<!--방에 유저 정보 삽입  -->
+	<update id="updateInfo">
+		UPDATE game_room
+		SET
+			user_key = #{user_key}
+		WHERE 
+			rating = ${rating}
+			and user_key is null
+		limit 1;
+	</update>
+	
+	<!-- 방에 보여줄 데이터 -->
+	<select id="getRoomId" parameterType="hashmap" resultType="hashmap">
+		SELECT a.id, a.user_key, b.game_count
+		FROM userinfo a
+			LEFT OUTER JOIN game_room b
+			on a.user_key = b.user_key
+		WHERE b.room_key = #{room_key}
+			and b.user_key is not null
+		ORDER BY seq
+	</select>
+	
+	<select id="getRoomKey" parameterType="String" resultType="String">
+		SELECT room_key
+		FROM game_room a
+		WHERE a.user_key = #{user_key};
+	</select>
+	
+	<!--게임 카운트 증가 -->
+	<update id="updateRoomCount">
+		UPDATE game_room
+		SET
+			game_count = game_count + 1
+	</update>
+	
+	<select id="getRoundInfo" resultType="hashmap">
+		SELECT user1 as round_info
+		FROM round_table
+		WHERE game_count = (SELECT game_count
+							FROM game_room
+							WHERE room_key = #{room_key}
+							limit 1)
+		union all
+		SELECT user2
+		FROM round_table
+		WHERE game_count = (SELECT game_count
+							FROM game_room
+							WHERE room_key = #{room_key}
+							limit 1)
+		union all
+		SELECT user3
+		FROM round_table
+		WHERE game_count = (SELECT game_count
+							FROM game_room
+							WHERE room_key = #{room_key}
+							limit 1)
+		union all
+		SELECT user4
+		FROM round_table
+		WHERE game_count = (SELECT game_count
+							FROM game_room
+							WHERE room_key = #{room_key}
+							limit 1)
+		union all
+		SELECT user5
+		FROM round_table
+		WHERE game_count = (SELECT game_count
+							FROM game_room
+							WHERE room_key = #{room_key}
+							limit 1)
+		union all
+		SELECT user6
+		FROM round_table
+		WHERE game_count = (SELECT game_count
+							FROM game_room
+							WHERE room_key = #{room_key}
+							limit 1)
+	</select>
+
+	<!-- 방 라운드에 맞게 게임 키 부여 -->
+	<select id="generateGameKey" resultType="String">
+		SELECT uuid()
+	</select>
+	
+	<!--호스트 유저가 룸키 방에 할당 -->
+	<update id="insertGameKey" parameterType="hashmap">
+		UPDATE game_room
+		SET
+			game_key = #{temp_game_key}
+		WHERE
+			user_index = ${home_idx}
+			or user_index = ${away_idx}
+	</update>
+	
+	<update id="deleteTempGameKey" parameterType="hashmap">
+		UPDATE game_room
+		SET
+			temp_game_key = null
+		WHERE 
+			temp_game_key is not null
+   	</update>
+   	
+   	<delete id="removeRoom" parameterType="String">
+   		DELETE FROM game_room
+   		WHERE room_key = #{room_key}
+   	</delete>
+   	
+	<select id="getWaitingRoomTime" parameterType="String" resultType="int">
+		SELECT room_time
+		FROM game_room
+		WHERE
+			room_key = #{room_key}
+		limit 1;
+	</select>
+
+	<update id="updateRoomTime" parameterType="String">
+		UPDATE game_room
+		SET
+			<if test='keyword == 1'>
+			room_time = room_time + 1
+			</if>
+			<if test='keyword == 0'>
+			room_time = -1
+			</if>
+		WHERE
+			room_key = #{room_key}
+	</update>
+	
+	<select id="getUserCountInRoom" parameterType="String" resultType="int">
+		SELECT count(*)
+		FROM game_room
+		WHERE room_key = #{room_key}
+			and user_key is not null
+	</select>
+
+	<update id="exitRoom" parameterType="String">
+		UPDATE game_room
+		SET
+			user_key = null
+		WHERE
+			user_key = #{user_key}
+	</update>
+	
+	<select id="getUserKeyInTempGameKey" parameterType="String" resultType="String">
+		SELECT user_key
+		FROM game_room
+		WHERE game_key = #{game_key}
+	</select>
+</mapper>

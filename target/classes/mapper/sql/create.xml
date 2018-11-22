@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="create">
+	<select id="getUserInfo" parameterType="hashmap" resultType="fg.vo.UserVO">
+		SELECT id
+			, a.user_key userKey
+			, b.team_key teamKey
+			, email
+			, b.name teamName
+			, a.name userName
+			, b.rating
+		FROM userinfo a
+			LEFT OUTER JOIN team b
+			on a.team_key = b.team_key 
+		WHERE a.user_key = #{user_key}
+	</select>
+	
+	<select id="getMakePercent" parameterType="hashmap" resultType="hashmap">
+		SELECT name, S_grade, A_grade, B_grade, C_grade
+		FROM makeplayerpercent
+		WHERE rating = ${rating }
+	</select>
+	
+	<!-- 생성된 선수 정보 INSERT -->
+	<insert id="makePlayer" parameterType="hashmap">
+		INSERT INTO player
+				(name, player_position, position_detail, user_key, player_key, age, height, weight, grade, foot, back_number
+				, speed, acc, kick, health, struggle, eyesight, sliding_tackle, standing_tackle
+				, handling, reflex, diving, long_pass, short_pass, heading, jump, skill, controll
+				, cross_stat, shoot_accuracy, restlessness, flexibility, positioning, action_stat)
+		VALUES (#{name}, #{position}, #{position_detail}, #{user_key}, uuid(), #{age}, #{height}, #{weight}, #{grade}, #{foot}, 0,
+		<foreach collection="stat" item="type" close=")" separator=",">
+            #{type.value}
+        </foreach>
+	</insert>
+	<!-- 150보다 큰 스텟으로만 overall 계산 -->
+	<select id="getPlayerOverall" parameterType="hashmap" resultType="hashmap">
+		SELECT round((stat1 * speed + stat2 * acc
+			+ stat3 * kick + stat4 * health
+			+ stat5 * struggle + stat6 * eyesight
+			+ stat7 * sliding_tackle + stat8 * standing_tackle
+			+ stat9 * handling + stat10 * reflex
+			+ stat11 * diving + stat12 * long_pass
+			+ stat13 * short_pass + stat14 * heading
+			+ stat15 * jump + stat16 * skill
+			+ stat17 * controll + stat18 * cross_stat
+			+ stat19 * shoot_accuracy + stat20 * restlessness
+			+ stat21 * flexibility + stat22 * positioning
+			+ stat23 * action_stat) /
+			(stat1 + stat2 + stat3 + stat4 + stat5 + stat6 + stat7 + stat8 + stat9 + stat10
+			+ stat11 + stat12 + stat13 + stat14 + stat15 + stat16 + stat17 + stat18 + stat19 + stat20
+			+ stat21 + stat22 + stat23), 0) average
+		FROM player a
+			, (SELECT IF((speed) >= 150, 1, 0) stat1
+				, IF((acc) >= 150, 1, 0) stat2
+				, IF((kick) >= 150, 1, 0) stat3
+				, IF((health) >= 150, 1, 0)  stat4
+				, IF((struggle) >= 150, 1, 0) stat5
+				, IF((eyesight) >= 150, 1, 0) stat6
+				, IF((sliding_tackle) >= 150, 1, 0) stat7
+				, IF((standing_tackle) >= 150, 1, 0) stat8
+				, IF((handling) >= 150, 1, 0) stat9
+				, IF((reflex) >= 150, 1, 0) stat10
+				, IF((diving) >= 150, 1, 0) stat11
+				, IF((long_pass) >= 150, 1, 0) stat12
+				, IF((short_pass) >= 150, 1, 0) stat13
+				, IF((heading) >= 150, 1, 0) stat14
+				, IF((jump) >= 150, 1, 0) stat15
+				, IF((skill) >= 150, 1, 0) stat16
+				, IF((controll) >= 150, 1, 0) stat17
+				, IF((cross_stat) >= 150, 1, 0) stat18
+				, IF((shoot_accuracy) >= 150, 1, 0) stat19
+				, IF((restlessness) >= 150, 1, 0) stat20
+				, IF((flexibility) >= 150, 1, 0) stat21
+				, IF((positioning) >= 150, 1, 0) stat22
+				, IF((action_stat) >= 150, 1, 0) stat23
+			FROM player_tendency
+			WHERE position_detail = #{position}) b
+		WHERE player_key = #{player_key}
+	</select>
+	
+	<select id="getPlayerList" parameterType="String" resultType="hashmap">
+		SELECT name
+			, player_position
+			, back_number
+			, position_detail
+			, player_key
+			, select_position
+			, age
+			, height
+			, weight
+		FROM player
+		WHERE user_key = #{user_key}
+		ORDER BY seq;
+	</select>
+	
+	<delete id="removePlayerList" parameterType="String">
+		DELETE FROM player WHERE user_key = #{user_key}
+	</delete>
+	
+	<!-- 정한 팀 정보 데이터를 기반으로 팀 생성 -->
+	<insert id="makeTeam" parameterType="hashMap">
+       INSERT INTO team (name, team_key, rating, tendency, money, grade)
+       VALUES (#{team_name}, uuid(), #{rating}, #{tendency}, 0, 'C')
+       <selectKey keyProperty="team_key" resultType="String" order="AFTER">
+       SELECT team_key FROM team WHERE name = #{team_name}
+       </selectKey>
+    </insert>
+    <!-- 플레이어 업데이트 -->
+    <update id="updatePlayers" parameterType="hashMap">
+	    UPDATE player
+		SET
+			team_key = #{team_key}
+		WHERE 
+			user_key = #{user_key}
+    </update>
+    <!-- 유저인포에 팀키 업데이트 -->
+    <update id="updateUserInfo" parameterType="hashMap">
+	    UPDATE userinfo
+		SET
+			team_key = #{team_key}
+		WHERE 
+			user_key = #{user_key}
+    </update>
+    
+	<update id="editPlayerName" parameterType="hashMap">
+	    UPDATE player
+		SET
+			name = #{name}
+		WHERE
+			player_key = #{player_key}
+	</update>
+    
+	<update id="editPlayerBackNum" parameterType="hashMap">
+	    UPDATE player
+		SET
+			back_number = #{num}
+		WHERE
+			player_key = #{player_key}
+	</update>
+	
+	<select id="getPlayerTendency" parameterType="String" resultType="hashMap">
+		SELECT speed stat1
+			, acc stat2
+			, kick stat3
+			, health stat4
+			, struggle stat5
+			, eyesight stat6
+			, sliding_tackle stat7
+			, standing_tackle stat8
+			, handling stat9
+			, reflex stat10
+			, diving stat11
+			, long_pass stat12
+			, short_pass stat13
+			, heading stat14
+			, jump stat15
+			, skill stat16
+			, controll stat17
+			, cross_stat stat18
+			, shoot_accuracy stat19
+			, restlessness stat20
+			, flexibility stat21
+			, positioning stat22
+			, action_stat stat23
+		FROM player_tendency
+		WHERE
+			position_detail = #{position}
+	</select>
+</mapper>

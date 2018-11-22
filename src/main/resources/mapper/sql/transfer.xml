@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="transfer">
+	<select id="getPlayerOverall" parameterType="String" resultType="hashmap">
+		SELECT round((stat1 * speed + stat2 * acc
+			+ stat3 * kick + stat4 * health
+			+ stat5 * struggle + stat6 * eyesight
+			+ stat7 * sliding_tackle + stat8 * standing_tackle
+			+ stat9 * handling + stat10 * reflex
+			+ stat11 * diving + stat12 * long_pass
+			+ stat13 * short_pass + stat14 * heading
+			+ stat15 * jump + stat16 * skill
+			+ stat17 * controll + stat18 * cross_stat
+			+ stat19 * shoot_accuracy + stat20 * restlessness
+			+ stat21 * flexibility + stat22 * positioning
+			+ stat23 * action_stat) /
+			(stat1 + stat2 + stat3 + stat4 + stat5 + stat6 + stat7 + stat8 + stat9 + stat10
+			+ stat11 + stat12 + stat13 + stat14 + stat15 + stat16 + stat17 + stat18 + stat19 + stat20
+			+ stat21 + stat22 + stat23), 0) average
+		FROM transfer_player a
+			, (SELECT IF((speed) >= 150, 1, 0) stat1
+				, IF((acc) >= 150, 1, 0) stat2
+				, IF((kick) >= 150, 1, 0) stat3
+				, IF((health) >= 150, 1, 0)  stat4
+				, IF((struggle) >= 150, 1, 0) stat5
+				, IF((eyesight) >= 150, 1, 0) stat6
+				, IF((sliding_tackle) >= 150, 1, 0) stat7
+				, IF((standing_tackle) >= 150, 1, 0) stat8
+				, IF((handling) >= 150, 1, 0) stat9
+				, IF((reflex) >= 150, 1, 0) stat10
+				, IF((diving) >= 150, 1, 0) stat11
+				, IF((long_pass) >= 150, 1, 0) stat12
+				, IF((short_pass) >= 150, 1, 0) stat13
+				, IF((heading) >= 150, 1, 0) stat14
+				, IF((jump) >= 150, 1, 0) stat15
+				, IF((skill) >= 150, 1, 0) stat16
+				, IF((controll) >= 150, 1, 0) stat17
+				, IF((cross_stat) >= 150, 1, 0) stat18
+				, IF((shoot_accuracy) >= 150, 1, 0) stat19
+				, IF((restlessness) >= 150, 1, 0) stat20
+				, IF((flexibility) >= 150, 1, 0) stat21
+				, IF((positioning) >= 150, 1, 0) stat22
+				, IF((action_stat) >= 150, 1, 0) stat23
+			FROM player_tendency
+			WHERE position_detail = #{position}) b
+		WHERE player_key = #{player_key}
+		ORDER BY seq;
+	</select>
+	
+	<select id="getPlayerList" parameterType="String" resultType="hashmap">
+		SELECT name
+			, player_position
+			, position_detail
+			, player_key
+			, age
+			, height
+			, weight
+		FROM transfer_player
+		WHERE user_key = #{user_key}
+		ORDER BY seq
+		limit 10;
+	</select>
+	
+	<select id="getRatingInfo" parameterType="String" resultType="hashmap">
+		SELECT *
+		FROM makeplayerpercent
+		WHERE
+		   rating = (SELECT rating
+		             FROM team a
+		                LEFT OUTER JOIN userinfo b
+		                on a.team_key = b.team_key
+		             WHERE user_key = #{user_key});
+	</select>
+	
+	<insert id="makePlayer" parameterType="hashmap">
+		INSERT INTO transfer_player
+				(name, player_position, position_detail, user_key, user_key_date, player_key, age, height, weight, grade, foot
+				, speed, acc, kick, health, struggle, eyesight, sliding_tackle, standing_tackle
+				, handling, reflex, diving, long_pass, short_pass, heading, jump, skill, controll
+				, cross_stat, shoot_accuracy, restlessness, flexibility, positioning, action_stat)
+		VALUES (#{name}, #{position}, #{position_detail}, #{user_key}, now(), uuid(), #{age}, #{height}, #{weight}, #{grade}, #{foot},
+		<foreach collection="stat" item="type" close=")" separator=",">
+            #{type.value}
+        </foreach>
+	</insert>
+	
+	<update id="updateTempPlayer" parameterType="hashmap">
+		UPDATE transfer_player
+		SET
+			user_key = #{user_key}
+			, appear = appear + 1
+			, user_key_date = now()
+		WHERE grade = #{grade}
+			and player_position = #{position}
+			and user_key is null
+		ORDER BY seq
+		limit 1;
+	</update>
+	<!--나타난 횟수 3보다 큰 플레이어 드랍 -->
+	<delete id="dropTempPlayer" parameterType="hashmap">
+		DELETE FROM transfer_player WHERE appear <![CDATA[>]]> ${appear}
+	</delete>
+	
+	<update id="removeTempPlayer" parameterType="String">
+		UPDATE transfer_player
+		SET
+			user_key = null
+			, user_key_date = null
+		WHERE
+			TIMESTAMPDIFF(minute, user_key_date, now()) <![CDATA[>=]]> 300
+	</update>
+	<!-- 선수 권한 종료 쿼리 -->
+	<update id="removeTempUserKey" parameterType="String">
+		UPDATE transfer_player
+		SET
+			user_key = null
+			, user_key_date = null
+		WHERE
+			user_key = #{user_key}
+	</update>
+	
+	<select id="getPlayerInfo" parameterType="String" resultType="hashmap">
+		SELECT *
+		FROM transfer_player
+		WHERE player_key = #{player_key}
+	</select>
+	
+    <select id="selectTransfer" parameterType="String" resultType="hashmap">
+   		SELECT name, player_position, position_detail, player_key, user_key
+   			, grade, age, height, weight, speed, acc, kick, health, struggle
+   			, eyesight, sliding_tackle, standing_tackle, handling, reflex
+   			, diving, long_pass, short_pass, heading, jump, skill, controll
+   			, cross_stat, shoot_accuracy, restlessness, flexibility, positioning
+   			, action_stat
+		FROM transfer_player
+		WHERE
+	   		player_key = #{player_key};
+	</select>
+
+	<insert id="insertTransfer" parameterType="hashMap">
+		INSERT INTO player
+			(name, player_position, position_detail
+			, user_key, player_key, team_key, grade, age, height, weight, speed, acc, kick
+			, health, struggle, eyesight, sliding_tackle, standing_tackle, handling
+			, reflex, diving, long_pass, short_pass, heading, jump, skill, controll
+			, cross_stat, shoot_accuracy, restlessness, flexibility, positioning
+			, action_stat)
+		VALUES (#{name}, #{player_position}, #{position_detail}
+			, #{user_key}, #{player_key}, #{team_key}, #{grade}, #{age}, #{height}, #{weight}
+			, #{speed}, #{acc},#{kick}, #{health}, #{struggle}, #{eyesight}
+			, #{sliding_tackle}, #{standing_tackle}, #{handling}, #{reflex}
+			, #{diving},#{long_pass}, #{short_pass}, #{heading}, #{jump}
+			, #{skill},#{controll}, #{cross_stat}, #{shoot_accuracy}
+			, #{restlessness}, #{flexibility}, #{positioning}, #{action_stat});
+	</insert>
+	
+	<delete id="dropTransfer" parameterType="String">
+		DELETE FROM transfer_player WHERE player_key = #{player_key}
+	</delete>
+</mapper>

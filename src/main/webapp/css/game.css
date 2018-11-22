@@ -1,0 +1,46 @@
+@charset "EUC-KR";
+
+.home {
+	background-color: blue;
+	border-radius: 50%;
+}
+
+.home_ball {
+	background-color: yellow;
+	color: blue;
+	border-radius: 50%;
+}
+
+.home_ball b {
+	color: blue;
+}
+
+.away {
+	background-color: red;
+	border-radius: 50%;
+}
+
+.away_ball {
+	background-color: yellow;
+	color: red;
+	border-radius: 50%;
+}
+
+.away_ball b {
+	color: red;
+}
+
+#ground td {
+	border: 0px solid;
+	width: 19px;
+	height: 19px;
+	padding: 0px;
+	text-align: center;
+	color: white;
+	font-size: small;
+}
+
+#ground tr {
+	height: 19px;
+	padding: 0px;
+}

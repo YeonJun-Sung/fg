@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+ <!--사용자 정보로 팀키 가져오기 -->
+<mapper namespace="start">
+	<select id="getTeamInfo" parameterType="String" resultType="hashmap">
+		SELECT rating, money, grade
+		FROM team a
+			LEFT OUTER JOIN userinfo b
+			on a.team_key = b.team_key
+		WHERE
+			b.user_key = #{user_key};
+	</select>
+</mapper>
