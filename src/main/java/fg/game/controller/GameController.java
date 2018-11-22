@@ -1145,7 +1145,6 @@ public class GameController {
 			/*
 			 * 공을 소유한 선수와 관계된 선수 들의 action 정의
 			 */
-			/*
 			
 			// 공과 상관없는 선수 움직임
 			List<Map<String, Object>> move_player = gameService.getNotParticipatePlayerList(game_key, participate_player_key);
@@ -1281,7 +1280,6 @@ public class GameController {
 				move_coord = gameService.calculateMoveCoord(game_key, move_section, move_player.get(i));
 				gameService.updateNotParticipatePlayerCoord(game_key, move_coord, move_player_key);
 			}
-			*/
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
