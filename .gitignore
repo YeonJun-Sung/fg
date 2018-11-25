@@ -13,7 +13,6 @@ local.properties
 .recommenders
 target/
 bulid/
-src/test
 
 
 # External tool builders
