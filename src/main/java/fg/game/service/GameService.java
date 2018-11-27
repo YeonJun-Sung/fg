@@ -53,7 +53,7 @@ public interface GameService {
 	void updateBasicCoord(List<Map<String, Object>> basic_coord) throws Exception;
 	Map<String, Object> getPlayerCoord(String player_key) throws Exception;
 	void recordGameLog(String game_key, String own_player_key, String player_key, String intercept, String act, String detail_action, Boolean own_keep, Boolean goal, Boolean loose_ball, Map<String, Object> end_coord, int time) throws Exception;
-	List<Map<String, Object>> getNotParticipatePlayerList(String game_key, List<String> participate_player_key) throws Exception;
+	List<Map<String, Object>> getNotParticipatePlayerList(String game_key, String own_player_key) throws Exception;
 	int getLastLineCoord(String state, String game_key, String move_player_key) throws Exception;
 	Map<String, Object> getMoveSection(String move_player_position, int coord_x_gap, int coord_y_gap, int state_label, int datum_coord_x, int ball_coord_x) throws Exception;
 	Map<String, Object> calculateMoveCoord(String game_key, Map<String, Object> move_section, Map<String, Object> move_player) throws Exception;

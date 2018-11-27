@@ -562,10 +562,7 @@
 		WHERE
 			a.game_key = #{game_key}
       		and a.coord_x is not null and a.coord_y is not null
-			and a.player_key not in
-			<foreach collection="player_list" item="up" separator="," open="(" close=")">
-      			#{up}
-			</foreach>
+			and a.player_key != #{own_player}
 	</select>
 	
 	<select id="getPlayerName" parameterType="String" resultType="String">
