@@ -571,12 +571,11 @@ public class GameServiceImpl implements GameService {
 	}
 
 	@Override
-	public List<Map<String, Object>> getNotParticipatePlayerList(String game_key, List<String> participate_player_key)
-			throws Exception {
+	public List<Map<String, Object>> getNotParticipatePlayerList(String game_key, String own_player_key) throws Exception {
 		// TODO Auto-generated method stub
 		Map<String, Object> param = new HashMap<String, Object>();
 		param.put("game_key", game_key);
-		param.put("player_list", participate_player_key);
+		param.put("own_player", own_player_key);
 
 		return gameDAO.getNotParticipatePlayerList(param);
 	}
@@ -602,8 +601,6 @@ public class GameServiceImpl implements GameService {
 		Map<String, Object> result = gameDAO.getMoveSection(param);
 		int min_x = ((Integer) result.get("min_x")).intValue();
 		int max_x = ((Integer) result.get("max_x")).intValue();
-		int min_y = ((Integer) result.get("min_y")).intValue();
-		int max_y = ((Integer) result.get("max_y")).intValue();
 
 		// -1 상대 최전방 공격수 x좌표 1칸 뒤까지
 		// -2 상대 최종 수비라인 1칸 뒤까지
@@ -643,9 +640,12 @@ public class GameServiceImpl implements GameService {
 		default:
 			break;
 		}
+		int temp_min_x = (min_x < max_x)?min_x:max_x;
+		int temp_max_x = (min_x > max_x)?min_x:max_x;
+		min_x = temp_min_x;
+		max_x = temp_max_x;
 
 		int x_size = max_x - min_x;
-		int y_size = max_y - min_y;
 
 		if (coord_x_gap != 0) {
 			min_x = min_x - coord_x_gap;
@@ -660,20 +660,6 @@ public class GameServiceImpl implements GameService {
 			}
 			result.put("min_x", min_x);
 			result.put("max_x", max_x);
-		}
-		if (coord_y_gap != 0) {
-			min_y = min_y - coord_y_gap;
-			max_y = max_y - coord_y_gap;
-			if (min_y < 0) {
-				min_y = 0;
-				max_y = x_size;
-			}
-			if (max_y > 37) {
-				max_y = 37;
-				min_y = max_y - y_size;
-			}
-			result.put("min_y", min_y);
-			result.put("max_y", max_y);
 		}
 
 		return result;
@@ -691,10 +677,18 @@ public class GameServiceImpl implements GameService {
 		int player_coord_y = ((Integer) move_player.get("coord_y")).intValue();
 		int result_x = 0;
 		int result_y = 0;
-		int distance = (int) ((((Integer) move_player.get("acc")).intValue()
-				+ ((Integer) move_player.get("speed")).intValue()) / 75);
-		if (distance == 0)
-			distance = 1;
+		int acc = ((Integer) move_player.get("acc")).intValue();
+		int speed = ((Integer) move_player.get("speed")).intValue();
+		double distance_ability = Math.sqrt(speed) + Math.sqrt(acc);
+		int distance = 0;
+		if(distance_ability > 20)
+			distance = 10;
+		else if(distance_ability > 15)
+			distance = 9;
+		else if(distance_ability > 10)
+			distance = 8;
+		else
+			distance = 7;
 		Random generator = new Random();
 
 		int rand_x = generator.nextInt(distance * 2) - distance;

@@ -279,6 +279,15 @@ public class GameController {
 		return list;
 	}
 
+	@RequestMapping(value = "/game/getGameSettingTime.do")
+	public @ResponseBody int getGameSettingTime(HttpServletRequest req, HttpSession session) throws Exception {
+		UserVO user = (UserVO) session.getAttribute("userSession");
+		String user_key = user.getUserKey();
+		String game_key = gameService.getGameKey(user_key);
+
+		return gameService.getGameSettingTime(game_key);
+	}
+
 	@RequestMapping(value = "/game/removeGame.do")
 	public @ResponseBody void removeGame(HttpServletRequest req, HttpServletResponse res, HttpSession session)
 			throws Exception {
@@ -534,6 +543,142 @@ public class GameController {
 			String own_player_key = (String) own_player.get("player_key");
 			if(own_player_key == null || own_player_key.equals(""))
 				log.debug("own_null");
+
+			// own_player 제외 선수 움직임
+			List<Map<String, Object>> move_player = gameService.getNotParticipatePlayerList(game_key, own_player_key);
+			Map<String, Object> ball_coord = gameService.getPlayerCoord(own_player_key);
+			Map<String, Object> move_coord = new HashMap<String, Object>();
+			Map<String, Object> move_section = new HashMap<String, Object>();
+			//Map<String, Object> datum_point = new HashMap<String, Object>();
+			String defense_end_line_valid = "ST / RS / LS / CF / RCF / "
+										  + "LCF / RW / LW / CAM / RCAM / "
+										  + "LCAM / CM / RCM / LCM / CDM / "
+										  + "RCDM / LCDM / RM / LM / RB / "
+										  + "RWB / LB / LWB";
+			String offense_end_line_valid = "CB / RCB / LCB / SW / RB / "
+										  + "RWB / LB / LWB";
+			String center_position_valid = "ST / RS / LS / CF / RCF / "
+										 + "LCF / CAM / RCAM / LCAM / CM / "
+										 + "RCM / LCM / CDM / RCDM / LCDM / "
+										 + "CB / RCB / LCB / SW";
+			String side_position_valid = "RW / LW / RM / LM / RB / "
+									   + "RWB / LB / LWB";
+			
+			String move_player_position = "";
+			String move_player_key = "";
+			String move_player_camp = "";
+			int move_player_coord_x = 0;
+			int move_player_coord_y = 0;
+			int move_player_speed = 0;
+			int move_player_acc = 0;
+			int datum_coord_x = -1;
+			int coord_x_gap = 0;
+			int coord_y_gap = 0;
+			int state_label = 0;
+	
+			int origin_ball_coord_x = ((Integer) ball_coord.get("coord_x")).intValue();
+			int origin_ball_coord_y = ((Integer) ball_coord.get("coord_y")).intValue();
+			int camp_validation = -1;
+			if(origin_ball_coord_x <= 25)
+				camp_validation = 0;
+			else
+				camp_validation = 1;
+			// camp_validation이 0이면 camp가 team일 떄 아군 진영, enemy일 떄 적군 진영
+			// camp_validation이 1이면 camp가 team일 때 적군 진영, enemy일 때 아군 진영
+			
+			for(int i = 0;i < move_player.size();i++) {
+				// 선수의 속도, 가속도에 따라 이동 가능한 칸 수 결정
+				// 이동할 좌표에 이미 선수가 있는 경우 y좌표를 중심과 가까워지도록 + or -
+				
+				// 공의 위치(end_coord) / 포지션에 따른 중심점, 이동범위 계산
+				// y 좌표		> 사이드	포지션의 경우 해당 사이드의 패널티 에어리어 바깥쪽
+				// 			> 중앙 	포지션의 경우 패널티 에어리어 안쪽
+	
+				// 공의 위치가 아군 진영 or 상대 진영 중심에 위치할 떄 x좌표 범위 설정
+				// GK				> 패널티 에어리어 내
+				
+				// CB, SW, RCB, LCB	> 공격 - 아군 진영에서는 페널티 에어리어 앞부터		하프라인 5칸 뒤까지				, 상대 진영에서는 하프라인 5칸 뒤부터						하프라인 3칸 앞까지
+				//					> 수비 - 아군 진영에서는 골라인부터				상대 최전방 공격수 x좌표 1칸 뒤까지	, 상대 진영에서는 페널티 에어리어 앞부터					하프라인 5칸 뒤까지
+				
+				// RB, LB, RWB, LWB	> 공격 - 아군 진영에서는 페널티 에어리어 앞부터		하프라인 까지					, 상대 진영에서는 하프라인부터							상대 최종 수비라인 1칸 뒤까지
+				//					> 수비 - 아군 진영에서는 골라인부터				상대 최전방 공격수 x좌표 1칸 뒤까지	, 상대 진영에서는 페널티 에어리어 앞부터					하프라인까지
+				
+				// CDM, RCDM, LCDM	> 공격 - 아군 진영에서는 공위치 x좌표부터			하프라인 5칸 앞까지				, 상대 진영에서는 하프라인 3칸 앞부터						상대 최종 수비라인 5칸 뒤까지
+				//					> 수비 - 아군 진영에서는 페널티 에어리어 절반부터		하프라인 5칸 뒤까지				, 상대 진영에서는 페널티 에어리어 앞부터					하프라인까지
+				
+				// CM, RCM, LCM		> 공격 - 아군 진영에서는 경기장 1/4 지점 1칸 앞부터	하프라인 7칸 앞까지				, 상대 진영에서는 하프라인 5칸 앞부터						상대 최종 수비라인 3칸 뒤까지 
+				//					> 수비 - 아군 진영에서는 패널티 에어리어 앞부터		경기장 1/4 지점까지				, 상대 진영에서는 하프라인 15칸 뒤부터 					하프라인까지
+				
+				// CAM, RCAM, LCAM	> 공격 - 아군 진영에서는 하프라인 5칸 뒤부터		상대 최종 수비라인과 하프라인 사이까지	, 상대 진영에서는 하프라인과 상대 최종 수비라인 기준 1/4지점부터 	3/4지점까지
+				//					> 수비 - 아군 진영에서는 페널티 에어리어 앞부터		하프라인 뒤 5칸 까지				, 상대 진영에서는 하프라인 뒤 5칸부터 						하프라인 앞 5칸까지
+				
+				// LM, RM			> 공격 - 아군 진영에서는 경기장 1/4 지점부터 		경기장 3/4지점까지				, 상대 진영에서는 하프라인 기준 1/4지점부터 				상대 최종 수비라인 1칸 뒤까지
+				//					> 수비 - 아군 진영에서는 페널티 에어리어 절반부터 	하프라인까지					, 상대 진영에서는 경기장 1/4지점부터 						경기장 3/4지점까지
+				
+				// ST, RS, LS		> 공격 - 아군 진영에서는 하프라인 1칸 뒤부터 		상대 최종 수비라인 1칸 앞까지		, 상대 진영에서는 패널티 에어리어 2칸 뒤부터 				상대 최종 수비라인 1칸 뒤까지
+				//					> 수비 - 아군 진영에서는 하프라인 2칸 뒤부터 		하프라인까지					, 상대 진영에서는 하프라인부터 							경기장 3/4 지점까지
+				
+				// CF, RCF, LCF		> 공격 - 아군 진영에서는 하프라인 1칸 뒤부터 		상대 최종 수비라인 1칸 앞까지		, 상대 진영에서는 패널티 에어리어 4칸 뒤부터 				상대 최종 수비라인 1칸 뒤까지
+				//					> 수비 - 아군 진영에서는 하프라인 4칸 뒤부터 		하프라인까지					, 상대 진영에서는 하프라인부터 							경기장 3/4 지점까지
+				
+				// RW, LW			> 공격 - 아군 진영에서는 하프라인 4칸 뒤부터		경기장 3/4 지점까지				, 상대 진영에서는 3/4 지점 1칸 앞부터						상대 최종 수비라인 1칸 뒤까지
+				//					> 수비 - 아군 진영에서는 패널티 에어리어 앞부터		하프라인까지					, 상대진영에서는 하프라인 10칸 뒤부터 						경기장 3/4 지점까지
+	
+				// 필요한 함수 	: 	최종 수비라인 / 최전방 공격수 x좌표 가져오는 함수 > parameter = game_key, camp 
+				//			:	범위 설정 함수 > parameter = end_coord(공 좌표), game_key, (최종 수비라인 좌표, 최전방 공격수 좌표)
+	
+				// 최종 수비라인 좌표 필요 : ST(공), CF(공), RW(공), CAM(공), CM(공), CDM(공), LM(공), RB(공) 
+				// 최전방 공격수 좌표 필요 : CB(수), RB(수)
+	
+				int ball_coord_x = origin_ball_coord_x;
+				int ball_coord_y = origin_ball_coord_x;
+				move_player_position = (String) move_player.get(i).get("select_position");
+				move_player_key = (String) move_player.get(i).get("player_key");
+				move_player_camp = (String) move_player.get(i).get("camp");
+				move_player_speed = ((Integer) move_player.get(i).get("speed")).intValue();
+				move_player_acc = ((Integer) move_player.get(i).get("acc")).intValue();
+				move_player_coord_x = ((Integer) move_player.get(i).get("coord_x")).intValue();
+				move_player_coord_y = ((Integer) move_player.get(i).get("coord_y")).intValue();
+				
+				int temp_coord_x = 0;
+				int temp_coord_y = 18;
+	
+				// camp_validation이 0이면 camp가 team일 떄 아군 진영, enemy일 떄 적군 진영
+				// camp_validation이 1이면 camp가 team일 때 적군 진영, enemy일 때 아군 진영
+				if(move_player_camp.equals("team")) {
+					temp_coord_x = 13 + camp_validation * 25;
+					state_label = 1 + camp_validation;
+					if(defense_end_line_valid.contains(move_player_position)) {
+						// 최종 수비라인 가져오기
+						datum_coord_x = gameService.getLastLineCoord("D", game_key, move_player_key);
+					}
+				}
+				else if(move_player_camp.equals("enemy")) {
+					temp_coord_x = 38 - camp_validation * 25;
+					ball_coord_x = 50 - ball_coord_x;
+					ball_coord_y = 37 - ball_coord_y;
+					state_label = 4 - camp_validation;
+					if(offense_end_line_valid.contains(move_player_position)) {
+						// 최전방 공격수 좌표 가져오기
+						datum_coord_x = gameService.getLastLineCoord("A", game_key, move_player_key);
+					}
+				}
+				coord_x_gap = temp_coord_x - ball_coord_x;
+				coord_y_gap = temp_coord_y - ball_coord_y;
+	
+				log.debug("camp		 	 > " + move_player_camp);
+				log.debug("coord gap 	 > (" + coord_x_gap + ", " + coord_y_gap + ")");
+				log.debug("ball coord 	 > (" + ball_coord_x + ", " + ball_coord_y + ")");
+				log.debug("temp coord 	 > (" + temp_coord_x + ", " + temp_coord_y + ")");
+				log.debug("datum coord x > " + datum_coord_x);
+				log.debug("state label 	 > " + state_label);
+				log.debug("move player 	 > " + i);
+				
+				move_section = gameService.getMoveSection(move_player_position, coord_x_gap, coord_y_gap, state_label, datum_coord_x, ball_coord_x);
+				move_coord = gameService.calculateMoveCoord(game_key, move_section, move_player.get(i));
+				gameService.updateNotParticipatePlayerCoord(game_key, move_coord, move_player_key);
+			}
+			
 			String act = gameService.makeAction(section, section_gk, game_key);
 			// 현재 own_player가 있는 위치에 따른 action 생성
 			String detail_action = gameService.getDetailAction(section, section_gk, game_key, act);
@@ -1142,147 +1287,9 @@ public class GameController {
 			gameService.recordAction(game_key, own_player_key, act, detail_action, own_keep);
 			gameService.recordGameLog(game_key, own_player_key, player_key, intercept, act, detail_action, own_keep, goal, loose_ball, end_coord, time);
 			
-			/*
-			 * 공을 소유한 선수와 관계된 선수 들의 action 정의
-			 */
-			
-			// 공과 상관없는 선수 움직임
-			List<Map<String, Object>> move_player = gameService.getNotParticipatePlayerList(game_key, participate_player_key);
-			Map<String, Object> ball_coord = gameService.getPlayerCoord(player_key);
-			Map<String, Object> move_coord = new HashMap<String, Object>();
-			Map<String, Object> move_section = new HashMap<String, Object>();
-			//Map<String, Object> datum_point = new HashMap<String, Object>();
-			String defense_end_line_valid = "ST / RS / LS / CF / RCF / "
-										  + "LCF / RW / LW / CAM / RCAM / "
-										  + "LCAM / CM / RCM / LCM / CDM / "
-										  + "RCDM / LCDM / RM / LM / RB / "
-										  + "RWB / LB / LWB";
-			String offense_end_line_valid = "CB / RCB / LCB / SW / RB / "
-										  + "RWB / LB / LWB";
-			String center_position_valid = "ST / RS / LS / CF / RCF / "
-										 + "LCF / CAM / RCAM / LCAM / CM / "
-										 + "RCM / LCM / CDM / RCDM / LCDM / "
-										 + "CB / RCB / LCB / SW";
-			String side_position_valid = "RW / LW / RM / LM / RB / "
-									   + "RWB / LB / LWB";
-			
-			String move_player_position = "";
-			String move_player_key = "";
-			String move_player_camp = "";
-			int move_player_coord_x = 0;
-			int move_player_coord_y = 0;
-			int move_player_speed = 0;
-			int move_player_acc = 0;
-			int datum_coord_x = -1;
-			int coord_x_gap = 0;
-			int coord_y_gap = 0;
-			int state_label = 0;
-	
-			int origin_ball_coord_x = ((Integer) ball_coord.get("coord_x")).intValue();
-			int origin_ball_coord_y = ((Integer) ball_coord.get("coord_y")).intValue();
-			int camp_validation = -1;
-			if(origin_ball_coord_x <= 25)
-				camp_validation = 0;
-			else
-				camp_validation = 1;
-			// camp_validation이 0이면 camp가 team일 떄 아군 진영, enemy일 떄 적군 진영
-			// camp_validation이 1이면 camp가 team일 때 적군 진영, enemy일 때 아군 진영
-			
-			for(int i = 0;i < move_player.size();i++) {
-				// 선수의 속도, 가속도에 따라 이동 가능한 칸 수 결정
-				// 이동할 좌표에 이미 선수가 있는 경우 y좌표를 중심과 가까워지도록 + or -
-				
-				// 공의 위치(end_coord) / 포지션에 따른 중심점, 이동범위 계산
-				// y 좌표		> 사이드	포지션의 경우 해당 사이드의 패널티 에어리어 바깥쪽
-				// 			> 중앙 	포지션의 경우 패널티 에어리어 안쪽
-	
-				// 공의 위치가 아군 진영 or 상대 진영 중심에 위치할 떄 x좌표 범위 설정
-				// GK				> 패널티 에어리어 내
-				
-				// CB, SW, RCB, LCB	> 공격 - 아군 진영에서는 페널티 에어리어 앞부터		하프라인 5칸 뒤까지				, 상대 진영에서는 하프라인 5칸 뒤부터						하프라인 3칸 앞까지
-				//					> 수비 - 아군 진영에서는 골라인부터				상대 최전방 공격수 x좌표 1칸 뒤까지	, 상대 진영에서는 페널티 에어리어 앞부터					하프라인 5칸 뒤까지
-				
-				// RB, LB, RWB, LWB	> 공격 - 아군 진영에서는 페널티 에어리어 앞부터		하프라인 까지					, 상대 진영에서는 하프라인부터							상대 최종 수비라인 1칸 뒤까지
-				//					> 수비 - 아군 진영에서는 골라인부터				상대 최전방 공격수 x좌표 1칸 뒤까지	, 상대 진영에서는 페널티 에어리어 앞부터					하프라인까지
-				
-				// CDM, RCDM, LCDM	> 공격 - 아군 진영에서는 공위치 x좌표부터			하프라인 5칸 앞까지				, 상대 진영에서는 하프라인 3칸 앞부터						상대 최종 수비라인 5칸 뒤까지
-				//					> 수비 - 아군 진영에서는 페널티 에어리어 절반부터		하프라인 5칸 뒤까지				, 상대 진영에서는 페널티 에어리어 앞부터					하프라인까지
-				
-				// CM, RCM, LCM		> 공격 - 아군 진영에서는 경기장 1/4 지점 1칸 앞부터	하프라인 7칸 앞까지				, 상대 진영에서는 하프라인 5칸 앞부터						상대 최종 수비라인 3칸 뒤까지 
-				//					> 수비 - 아군 진영에서는 패널티 에어리어 앞부터		경기장 1/4 지점까지				, 상대 진영에서는 하프라인 15칸 뒤부터 					하프라인까지
-				
-				// CAM, RCAM, LCAM	> 공격 - 아군 진영에서는 하프라인 5칸 뒤부터		상대 최종 수비라인과 하프라인 사이까지	, 상대 진영에서는 하프라인과 상대 최종 수비라인 기준 1/4지점부터 	3/4지점까지
-				//					> 수비 - 아군 진영에서는 페널티 에어리어 앞부터		하프라인 뒤 5칸 까지				, 상대 진영에서는 하프라인 뒤 5칸부터 						하프라인 앞 5칸까지
-				
-				// LM, RM			> 공격 - 아군 진영에서는 경기장 1/4 지점부터 		경기장 3/4지점까지				, 상대 진영에서는 하프라인 기준 1/4지점부터 				상대 최종 수비라인 1칸 뒤까지
-				//					> 수비 - 아군 진영에서는 페널티 에어리어 절반부터 	하프라인까지					, 상대 진영에서는 경기장 1/4지점부터 						경기장 3/4지점까지
-				
-				// ST, RS, LS		> 공격 - 아군 진영에서는 하프라인 1칸 뒤부터 		상대 최종 수비라인 1칸 앞까지		, 상대 진영에서는 패널티 에어리어 2칸 뒤부터 				상대 최종 수비라인 1칸 뒤까지
-				//					> 수비 - 아군 진영에서는 하프라인 2칸 뒤부터 		하프라인까지					, 상대 진영에서는 하프라인부터 							경기장 3/4 지점까지
-				
-				// CF, RCF, LCF		> 공격 - 아군 진영에서는 하프라인 1칸 뒤부터 		상대 최종 수비라인 1칸 앞까지		, 상대 진영에서는 패널티 에어리어 4칸 뒤부터 				상대 최종 수비라인 1칸 뒤까지
-				//					> 수비 - 아군 진영에서는 하프라인 4칸 뒤부터 		하프라인까지					, 상대 진영에서는 하프라인부터 							경기장 3/4 지점까지
-				
-				// RW, LW			> 공격 - 아군 진영에서는 하프라인 4칸 뒤부터		경기장 3/4 지점까지				, 상대 진영에서는 3/4 지점 1칸 앞부터						상대 최종 수비라인 1칸 뒤까지
-				//					> 수비 - 아군 진영에서는 패널티 에어리어 앞부터		하프라인까지					, 상대진영에서는 하프라인 10칸 뒤부터 						경기장 3/4 지점까지
-	
-				// 필요한 함수 	: 	최종 수비라인 / 최전방 공격수 x좌표 가져오는 함수 > parameter = game_key, camp 
-				//			:	범위 설정 함수 > parameter = end_coord(공 좌표), game_key, (최종 수비라인 좌표, 최전방 공격수 좌표)
-	
-				// 최종 수비라인 좌표 필요 : ST(공), CF(공), RW(공), CAM(공), CM(공), CDM(공), LM(공), RB(공) 
-				// 최전방 공격수 좌표 필요 : CB(수), RB(수)
-	
-				int ball_coord_x = origin_ball_coord_x;
-				int ball_coord_y = origin_ball_coord_x;
-				move_player_position = (String) move_player.get(i).get("select_position");
-				move_player_key = (String) move_player.get(i).get("player_key");
-				move_player_camp = (String) move_player.get(i).get("camp");
-				move_player_speed = ((Integer) move_player.get(i).get("speed")).intValue();
-				move_player_acc = ((Integer) move_player.get(i).get("acc")).intValue();
-				move_player_coord_x = ((Integer) move_player.get(i).get("coord_x")).intValue();
-				move_player_coord_y = ((Integer) move_player.get(i).get("coord_y")).intValue();
-				
-				int temp_coord_x = 0;
-				int temp_coord_y = 18;
-	
-				// camp_validation이 0이면 camp가 team일 떄 아군 진영, enemy일 떄 적군 진영
-				// camp_validation이 1이면 camp가 team일 때 적군 진영, enemy일 때 아군 진영
-				if(move_player_camp.equals("team")) {
-					temp_coord_x = 13 + camp_validation * 25;
-					state_label = 1 + camp_validation;
-					if(defense_end_line_valid.contains(move_player_position)) {
-						// 최종 수비라인 가져오기
-						datum_coord_x = gameService.getLastLineCoord("D", game_key, move_player_key);
-					}
-				}
-				else if(move_player_camp.equals("enemy")) {
-					temp_coord_x = 38 - camp_validation * 25;
-					ball_coord_x = 50 - ball_coord_x;
-					ball_coord_y = 37 - ball_coord_y;
-					state_label = 4 - camp_validation;
-					if(offense_end_line_valid.contains(move_player_position)) {
-						// 최전방 공격수 좌표 가져오기
-						datum_coord_x = gameService.getLastLineCoord("A", game_key, move_player_key);
-					}
-				}
-				coord_x_gap = temp_coord_x - ball_coord_x;
-				coord_y_gap = temp_coord_y - ball_coord_y;
-	
-				log.debug("camp		 	 > " + move_player_camp);
-				log.debug("coord gap 	 > (" + coord_x_gap + ", " + coord_y_gap + ")");
-				log.debug("ball coord 	 > (" + ball_coord_x + ", " + ball_coord_y + ")");
-				log.debug("temp coord 	 > (" + temp_coord_x + ", " + temp_coord_y + ")");
-				log.debug("datum coord x > " + datum_coord_x);
-				log.debug("state label 	 > " + state_label);
-				log.debug("move player 	 > " + i);
-				
-				move_section = gameService.getMoveSection(move_player_position, coord_x_gap, coord_y_gap, state_label, datum_coord_x, ball_coord_x);
-				move_coord = gameService.calculateMoveCoord(game_key, move_section, move_player.get(i));
-				gameService.updateNotParticipatePlayerCoord(game_key, move_coord, move_player_key);
-			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}	// 공을 가진 선수의 stat
+		}
 	}
 }

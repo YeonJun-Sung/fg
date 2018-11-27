@@ -27,7 +27,7 @@ function startGame() {
 			, url : "/fg/game/getGameTime.do"
 			, data : {}
 			, success : function(data) {
-				console.log(data);
+				// console.log(data);
 				if(data == -1) {
 					var form = $("#send_form");
 					form.attr('method', 'post');
@@ -49,7 +49,7 @@ function startGame() {
 			, url : "/fg/game/getGameLog.do"
 			, data : {}
 			, success : function(data) {
-				console.log(data);
+				// console.log(data);
 				var rtvHtml = "";
 				for(var i = 0;i < data.length;i++){
 					var d = data[i];
@@ -85,7 +85,8 @@ function startGame() {
 					if(m.coord_y != null && m.coord_x != null){
 						var x = (m.who == "home")?(m.coord_x + 2):50 - m.coord_x;
 						var y = (m.who == "home")?m.coord_y:37 - m.coord_y;
-						var coord = "#ground tr:nth-child(" + y + ") td:nth-child(" + x + ")";
+						console.log(x, y, m.back_number);
+						var coord = "#ground tr:nth-child(" + (y + 1) + ") td:nth-child(" + x + ")";
 						$(coord).addClass(m.who);
 						$(coord + " b").text(m.back_number);
 						if(m.own_ball == "own")

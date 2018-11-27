@@ -296,7 +296,7 @@ function start() {
 	    		if(timecheck == 0)
 	    			$("#detail_info").html("<p style='font-size:200%; text-align:center;'>경기 시작까지 남은 시간</p><p style='font-size:300%; text-align:center;'>" + (60 - time) +"</p>");
 
-	    		if(time == 60){
+	    		if(time == 60 || time == -1){
 	    			if($.inArray("", position_list) != -1 || $.inArray("", sub_list) != -1){
 	    				alert("Please select the position of 11 players.");
 	    				$.ajax({
