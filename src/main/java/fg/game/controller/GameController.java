@@ -572,6 +572,7 @@ public class GameController {
 			/*
 			 * own_player의 Action 결정
 			 */
+
 			String act = gameService.makeAction(section, section_gk, game_key);
 			// 현재 own_player가 있는 위치에 따른 action 생성
 			String detail_action = gameService.getDetailAction(section, section_gk, game_key, act);

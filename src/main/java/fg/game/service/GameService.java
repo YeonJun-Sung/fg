@@ -63,4 +63,5 @@ public interface GameService {
 	List<String> getUserKey(String game_key) throws Exception;
 	List<Map<String, Object>> getPlayerAllList(String user_key) throws Exception;
 	void updateCoordPreGame(String player_key, String game_key, Map<String, Integer> own_coord) throws Exception;
+	void ownNullEmend(String game_key) throws Exception;
 }

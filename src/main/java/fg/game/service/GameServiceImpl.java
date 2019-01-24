@@ -809,4 +809,11 @@ public class GameServiceImpl implements GameService {
 		
 		gameDAO.updateCoord(param);
 	}
+
+	@Override
+	public void ownNullEmend(String game_key) throws Exception {
+		// TODO Auto-generated method stub
+		Map<String, Object> param = gameDAO.getRandomPlayerKey(game_key);
+		gameDAO.ownNullEmend(param);
+	}
 }
