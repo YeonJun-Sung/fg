@@ -353,4 +353,15 @@ public class GameDAO extends AbstractDAO {
 		// TODO Auto-generated method stub
 		update("game.updateCoordPreGame", param);
 	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> getRandomPlayerKey(String game_key) {
+		// TODO Auto-generated method stub
+		return (Map<String, Object>) selectOne("game.getRandomPlayerKey", game_key);
+	}
+
+	public void ownNullEmend(Map<String, Object> param) {
+		// TODO Auto-generated method stub
+		update("game.ownNullEmend", param);
+	}
 }

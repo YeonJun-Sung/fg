@@ -663,4 +663,21 @@
 		FROM game
 		WHERE game_key = #{game_key};
 	</select>
+
+	<select id="getRandomPlayerKey" parameterType="String" resultType="hashmap">
+		SELECT game_key, player_key
+		FROM game_info
+		WHERE game_key = #{game_key}
+		ORDER BY rand()
+		limit 1;
+	</select>
+
+	<update id="ownNullEmend" parameterType="hashmap">
+		UPDATE game_info
+		SET
+			own_ball = "own"
+		WHERE
+			game_key = #{game_key}
+			and player_key = #{player_key}
+	</update>
 </mapper>
