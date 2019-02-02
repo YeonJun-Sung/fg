@@ -672,7 +672,7 @@
 		limit 1;
 	</select>
 
-	<update id="updateGameSettingTime" parameterType="hashmap">
+	<update id="ownNullEmend" parameterType="hashmap">
 		UPDATE game_info
 		SET
 			own_ball = "own"
